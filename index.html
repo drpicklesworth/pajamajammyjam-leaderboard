@@ -179,7 +179,7 @@ body {
 }
 
 .party-completed {
-    color: #4a9b4a;
+    color: #d4af37;
     font-size: 14px;
     font-weight: bold;
 }
@@ -264,7 +264,7 @@ body {
 </div>
 
 <script>
-const SHEET_JSON_URL = 'https://script.google.com/macros/s/AKfycbxuzg6fbzzHHVvGvITQ5iYLae_FQraJjLFjfqrTBKfGdoCYcnBq5-KYAG34cWNLj1ldgA/exec';
+const SHEET_JSON_URL = 'https://script.google.com/macros/s/AKfycbwF7TRZMBbZEnGuTVXs3Cq_P-C5V6RY-_8EvBSyYUEczcFCe5RTu431H_ZyGoqFO-rT8Q/exec';
 const fallbackImage = 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/User-avatar.svg/240px-User-avatar.svg.png';
 let participants = [];
 let partyGuests = [];
@@ -283,21 +283,37 @@ function getRandomLoadingText() {
 
 async function loadData() {
     const content = document.getElementById('content');
-    content.innerHTML = `<div class="loading">${getRandomLoadingText()}<span class="dots"></span></div>`;
+    const hasExistingContent = content.querySelector('.leaderboard-container');
+    
+    // Only show loading message if page is empty
+    if (!hasExistingContent) {
+        content.innerHTML = `<div class="loading">${getRandomLoadingText()}<span class="dots"></span></div>`;
+    }
 
     try {
         const res = await fetch(SHEET_JSON_URL);
         const data = await res.json();
         
-        // Separate contestants and party guests
-        participants = data.contestants ? data.contestants.sort((a,b)=>b.score - a.score) : data.sort((a,b)=>b.score - a.score);
-        partyGuests = data.partyGuests ? data.partyGuests.sort((a,b)=>b.completed - a.completed) : [];
+        console.log('📊 Data received:', data); // Debug log
+        
+        // Handle both new format {contestants: [], partyGuests: []} and old format [...]
+        if (data.contestants) {
+            participants = data.contestants.sort((a,b)=>b.score - a.score);
+            partyGuests = data.partyGuests ? data.partyGuests.sort((a,b)=>b.completed - a.completed) : [];
+        } else {
+            // Old format - just contestant array
+            participants = data.sort((a,b)=>b.score - a.score);
+            partyGuests = [];
+        }
+        
+        console.log('👥 Contestants:', participants.length);
+        console.log('🎉 Party guests:', partyGuests.length);
         
         renderLeaderboard();
         renderPartyList();
         showUpdateIndicator();
     } catch(err) {
-        console.error(err);
+        console.error('❌ Error loading data:', err);
         content.innerHTML = `<div class="error">Error loading leaderboard. Check Apps Script deployment and sheet permissions.</div>`;
     }
 }
